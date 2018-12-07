@@ -1,5 +1,3 @@
-#CFLAGS=-W -Wall -O3 -s -D_FILE_OFFSET_BITS=64 -mtune=i686 -march=i386 -I/home/tuitfun/include -L/home/tuitfun/lib
-#CFLAGS=-W -Wall `pkg-config --cflags libavformat`
 
 #DESTDIR - reserved for rpmbuild
 UNAME!=uname -s
@@ -16,7 +14,7 @@ ifeq ($(UNAME),Linux)
 INCPATH=-I/usr/include/ffmpeg
 endif
 
-LIBS+=-lavcodec -lavformat -lavcodec -lswscale -lavutil -lgd -lfreetype -ljpeg -lz -lm -lpthread
+LIBS+=-lavcodec -lavformat -lavcodec -lswscale -lavutil -lgd -lm -lpthread
 S_INCPATH=-I$(LIBSDIR)/FFmpeg -I$(LIBSDIR)/libgd/src
 S_LIBS=\
 	$(LIBSDIR)/libgd.a \
