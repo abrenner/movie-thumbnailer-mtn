@@ -27,7 +27,7 @@ S_LIBS=\
 	-lm -lpthread -lbz2 -ldl -ljpeg -lfreetype
 
 mtn: mtn.c outdir
-	$(CC) -o $(OUT)/mtn mtn.c $(INCPATH) $(CFLAGS) $(LIBS)
+	$(CC) -o $(OUT)/mtn mtn.c -Wl,-z,relro,-z,now $(INCPATH) $(CFLAGS) $(LIBS)
 
 outdir:
 	mkdir -p $(OUT)
