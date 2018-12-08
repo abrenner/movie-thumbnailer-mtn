@@ -14,7 +14,7 @@ ifeq ($(UNAME),Linux)
 INCPATH=-I/usr/include/ffmpeg
 endif
 
-LIBS+=-lavcodec -lavformat -lavcodec -lswscale -lavutil -lgd -lm -lpthread
+LIBS+=-lavcodec -lavformat -lavcodec -lswscale -lavutil -lgd -lpthread
 S_INCPATH=-I$(LIBSDIR)/FFmpeg -I$(LIBSDIR)/libgd/src
 S_LIBS=\
 	$(LIBSDIR)/libgd.a \
