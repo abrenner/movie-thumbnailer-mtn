@@ -287,7 +287,7 @@ void format_time(double duration, TIME_STR str, char sep)
 
 char *format_size(int64_t size)
 {
-    static char buf[20]; // FIXME
+    static char buf[25];
     char unit[]="B";
 
     if (size < 1024) {
@@ -1676,6 +1676,7 @@ int make_unique_name(char *name, char *suffix, int unum)
 int make_thumbnail(char *file)
 {
     int return_code = -1;
+    int idx = 0; // set to 0
     av_log(NULL, AV_LOG_VERBOSE, "make_thumbnail: %s\n", file);
     static int nb_file = 0; // FIXME: static
     nb_file++;
@@ -2184,7 +2185,7 @@ int make_thumbnail(char *file)
     double avg_evade_try = 0; // average
     int direction = 0; // seek direction (seek flags)
     seek_target = (tn.step + start_time + gb_B_begin) / av_q2d(pStream->time_base);
-    int idx = 0; // idx = thumb_idx
+    idx = 0; // idx = thumb_idx
     int thumb_nb = tn.row * tn.column; // thumb_nb = # of shots we need
     int64_t prevshot_pts = -1; // pts of previous good shot
     int64_t prevfound_pts = -1; // pts of previous decoding
@@ -3059,12 +3060,14 @@ int main(int argc, char *argv[])
 {
     int return_code = -1;
 
+    if(!getenv("AV_LOG_FORCE_NOCOLOR") && !getenv("AV_LOG_FORCE_COLOR"))
+        putenv("AV_LOG_FORCE_NOCOLOR=0"); // do not print color
+
     gb_argv0 = path_2_file(argv[0]);
     setvbuf(stderr, NULL, _IONBF, 0); // turn off buffering in mingw
 
     gb_st_start = time(NULL); // program start time
     srand(gb_st_start);
-
     // get utf-8 argv in windows
     if (0 != get_windows_argv(&argc, &argv)) {
         av_log(NULL, AV_LOG_ERROR, "%s: cannot get command line arguments\n", gb_argv0);

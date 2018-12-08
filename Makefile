@@ -1,8 +1,8 @@
 
 #DESTDIR - reserved for rpmbuild
 UNAME!=uname -s
-CFLAGS=-W -Wall
-OUT=../bin
+CFLAGS=-W -Wall -Werror -Wno-stringop-overflow -Wl,-z,relro,-z,now
+OUT=bin
 LIBSDIR=../lib
 
 ifeq ($(UNAME),FreeBSD)
@@ -27,7 +27,7 @@ S_LIBS=\
 	-lm -lpthread -lbz2 -ldl -ljpeg -lfreetype
 
 mtn: mtn.c outdir
-	$(CC) -o $(OUT)/mtn mtn.c -Wl,-z,relro,-z,now $(INCPATH) $(CFLAGS) $(LIBS)
+	$(CC) -o $(OUT)/mtn mtn.c $(INCPATH) $(CFLAGS) $(LIBS) -O3
 
 outdir:
 	mkdir -p $(OUT)
