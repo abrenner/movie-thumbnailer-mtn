@@ -1,7 +1,7 @@
 
 #DESTDIR - reserved for rpmbuild
 UNAME!=uname -s
-CFLAGS=-W -Wall -Werror -Wno-stringop-overflow -Wl,-z,relro,-z,now
+CFLAGS=-W -Wall -Werror -Wno-stringop-overflow -Wl,-z,relro,-z,now -O2
 OUT=bin
 LIBSDIR=../lib
 
@@ -27,7 +27,7 @@ S_LIBS=\
 	-lm -lpthread -lbz2 -ldl -ljpeg -lfreetype
 
 mtn: mtn.c outdir
-	$(CC) -o $(OUT)/mtn mtn.c $(INCPATH) $(CFLAGS) $(LIBS) -O3
+	$(CC) -o $(OUT)/mtn mtn.c $(INCPATH) $(CFLAGS) $(LIBS)
 
 outdir:
 	mkdir -p $(OUT)
