@@ -276,8 +276,8 @@ void format_time(double duration, TIME_STR str, char sep)
         //int hours, mins, secs; // with -O3 results in  warning: '__builtin___snprintf_chk' output may be truncated before the last format character [-Wformat-truncation=]
         unsigned char hours, mins, secs;
         secs  = (int) duration % 60;
-        mins  = duration / 60;
-        hours = mins / 60;
+        mins  = (int) (duration / 60) % 60;
+        hours = duration / 3600;
 
         snprintf(str, sizeof(TIME_STR), "%02d%c%02d%c%02d", hours, sep, mins, sep, secs);
     }
