@@ -237,7 +237,7 @@ int gb__transparent_bg=0;		//  0 off, 1 on
 
 /* more global variables */
 char *gb_argv0 = NULL;
-char *gb_version = "2.0";
+char *gb_version = "2.1";
 time_t gb_st_start = 0; // start time of program
 
 /* misc functions */
@@ -334,6 +334,7 @@ char *strcpy_va(char *dst, int n, ...)
         char *s = va_arg(ap, char *);
         assert(NULL != s);
         int len = strlen(s);
+        #pragma GCC diagnostic ignored "-Wstringop-truncation"
         strncpy(dst + pos, s, len + 1); // for '\0'
         pos += len;
     }
@@ -956,42 +957,9 @@ void dump_codec_context(AVCodecContext * p)
         av_log(NULL, AV_LOG_VERBOSE, "***dump_codec_context %s, time_base: %d / %d\n", p->codec->name,
             p->time_base.num, p->time_base.den);
 
-    av_log(NULL, AV_LOG_VERBOSE, "frame_number: %d, width: %d, height: %d, sample_aspect_ratio %d/%d%s\n",
-        p->frame_number, p->width, p->height, p->sample_aspect_ratio.num, p->sample_aspect_ratio.den,
+    av_log(NULL, AV_LOG_VERBOSE, "frame_number: %ld, width: %d, height: %d, sample_aspect_ratio %d/%d%s\n",
+        p->frame_num, p->width, p->height, p->sample_aspect_ratio.num, p->sample_aspect_ratio.den,
         (0 == p->sample_aspect_ratio.num) ? "" : "**a**");
-}
-
-void dump_index_entries(AVStream * p)
-{
-    // index_entries are only used if the format does not support seeking natively 
-    int i;
-    double diff = 0;
-    for (i=0; i < p->nb_index_entries; i++) { 
-        AVIndexEntry *e = p->index_entries + i;
-        double prev_ts = 0, cur_ts = 0;
-        cur_ts = e->timestamp * av_q2d(p->time_base);
-        //assert(cur_ts > 0);
-        diff += cur_ts - prev_ts;
-        if (i < 20) { // show only first 20
-            av_log(NULL, AV_LOG_VERBOSE, "    i: %2d, pos: %8"PRId64", timestamp tb: %6"PRId64", timestamp s: %6.2f, flags: %d, size: %6d, min_distance: %3d\n",
-                i, e->pos, e->timestamp, e->timestamp * av_q2d(p->time_base), e->flags, e->size, e->min_distance);
-        }
-        prev_ts = cur_ts;
-    }
-    av_log(NULL, AV_LOG_VERBOSE, "  *** nb_index_entries: %d, avg. timestamp s diff: %.2f\n", p->nb_index_entries, diff / p->nb_index_entries);
-}
-
-void dump_stream(AVStream * p)
-{
-    av_log(NULL, AV_LOG_VERBOSE, "***dump_stream, time_base: %d / %d\n", 
-        p->time_base.num, p->time_base.den);
-    av_log(NULL, AV_LOG_VERBOSE, "cur_dts tb?: %"PRId64", start_time tb: %"PRId64", duration tb: %"PRId64", nb_frames: %"PRId64"\n",
-        p->cur_dts, p->start_time, p->duration, p->nb_frames);
-    // get funny results here. use format_context's.
-    av_log(NULL, AV_LOG_VERBOSE, "cur_dts s?: %.2f, start_time s: %.2f, duration s: %.2f\n",
-        p->cur_dts * av_q2d(p->time_base), p->start_time * av_q2d(p->time_base), 
-        p->duration * av_q2d(p->time_base)); // duration can be AV_NOPTS_VALUE 
-    // field pts in AVStream is for encoding
 }
 
 /*
@@ -1402,7 +1370,7 @@ int get_videoframe(AVFormatContext *pFormatCtx,
     }
 
 
-    while(got_picture == 0 || (1 == key_only && !(1 == pFrame->key_frame || AV_PICTURE_TYPE_I  == pFrame->pict_type)))
+    while(got_picture == 0 || (1 == key_only && !(1 == AV_FRAME_FLAG_KEY || AV_PICTURE_TYPE_I  == pFrame->pict_type)))
     {
         /// read packet
         do
@@ -1453,7 +1421,7 @@ int get_videoframe(AVFormatContext *pFormatCtx,
             got_picture=1;
             decoded_frame++;
 
-            av_log(NULL, AV_LOG_VERBOSE, "*get_videoframe got frame: key_frame: %d, pict_type: %d\n", pFrame->key_frame, pFrame->pict_type);
+            av_log(NULL, AV_LOG_VERBOSE, "*get_videoframe got frame: key_frame: %d, pict_type: %d\n", AV_FRAME_FLAG_KEY, pFrame->pict_type);
 
             // some codecs, e.g avisyth, dont seem to set key_frame
             if (1 == key_only && 0 == decoded_frame%200) {
@@ -1487,12 +1455,11 @@ int get_videoframe(AVFormatContext *pFormatCtx,
     }
 
     av_log(NULL, AV_LOG_VERBOSE, "*****got picture, repeat_pict: %d%s, key_frame: %d, pict_type: %d\n", pFrame->repeat_pict,
-        (pFrame->repeat_pict > 0) ? "**r**" : "", pFrame->key_frame, pFrame->pict_type);
+        (pFrame->repeat_pict > 0) ? "**r**" : "", AV_FRAME_FLAG_KEY, pFrame->pict_type);
 //    if(NULL != pFrame->opaque && (uint64_t)AV_NOPTS_VALUE != *(uint64_t *) pFrame->opaque) {
 //        //av_log(NULL, AV_LOG_VERBOSE, "*pts: %.2f, value in opaque: %"PRId64"\n", pts, *(uint64_t *) pFrame->opaque);
 //        av_log(NULL, AV_LOG_VERBOSE, "*value in opaque: %"PRId64"\n", *(uint64_t *) pFrame->opaque);
 //    }
-    dump_stream(pStream);
     dump_codec_context(pCodecCtx);
 
     *pPts = gb_video_pkt_pts;
@@ -1856,13 +1823,11 @@ int make_thumbnail(char *file)
     if(!pCodecCtx)
         goto cleanup;
 
-    dump_stream(pStream);
-    dump_index_entries(pStream);
     dump_codec_context(pCodecCtx);
     av_log(NULL, AV_LOG_VERBOSE, "\n");
 
     // Find the decoder for the video stream
-    AVCodec *pCodec = avcodec_find_decoder(pCodecCtx->codec_id);
+    const AVCodec *pCodec = avcodec_find_decoder(pCodecCtx->codec_id);
     if (pCodec == NULL) {
         av_log(NULL, AV_LOG_ERROR, "  couldn't find a decoder for codec_id: %d\n", pCodecCtx->codec_id);
         goto cleanup;
@@ -2533,7 +2498,7 @@ int make_thumbnail(char *file)
     // Close the codec
 //    if (NULL != pCodecCtx && NULL != pCodecCtx->codec) {
     if (NULL != pCodecCtx) {
-        avcodec_close(pCodecCtx);
+        avcodec_free_context(&pCodecCtx);
         avcodec_free_context(&pCodecCtx);
     }    
 
